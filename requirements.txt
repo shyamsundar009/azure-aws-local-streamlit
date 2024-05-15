@@ -1,0 +1,12 @@
+azure-storage-blob 
+streamlit
+docx2txt
+pypdf
+langchain-community
+langchain-text-splitters
+python-dotenv
+langchain-chroma
+langchain-openai
+unstructured
+langchain
+python-pptx
