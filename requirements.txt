@@ -10,3 +10,4 @@ langchain-openai
 unstructured
 langchain
 python-pptx
+boto3

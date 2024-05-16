@@ -33,10 +33,9 @@ def load_file(file_name):
 
 def file_to_chunks():
     pages=[]
-    for file_name in os.listdir("Azure_data"):
-        # print(f"Azure_data\\{file_name}")
-        with st.spinner(f"{file_name} is being processed to chunks....."):
-            pages.extend(load_file(f"Azure_data\\{file_name}"))
+    with st.spinner("Azure blob storage contents are processing into chunks....."):
+            for file_name in os.listdir("Azure_data"):
+             pages.extend(load_file(f"Azure_data\\{file_name}"))
     shutil.rmtree("Azure_data")
     return pages
     
@@ -54,8 +53,10 @@ def azure_data_download(AZURE_CONNECTION_STRING,CONTAINER_NAME):
 st.sidebar.title("Azure Blob Storage Credentials")
 
 # Input fields in sidebar
-AZURE_CONNECTION_STRING = st.sidebar.text_input("Azure Connection String Input")
+AZURE_CONNECTION_STRING = st.sidebar.text_input("Azure Connection String Input",type="password")
 CONTAINER_NAME = st.sidebar.text_input("Azure Container Name")
+
+st.title("Azure Blob Storage Data to Chroma Vector Database")
 
 if st.sidebar.button("Injest"):
     # Check if all inputs are provided
