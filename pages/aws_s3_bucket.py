@@ -4,7 +4,7 @@ from langchain_community.document_loaders import UnstructuredHTMLLoader
 from langchain_community.document_loaders import Docx2txtLoader
 from langchain_community.document_loaders import UnstructuredPowerPointLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from azure.storage.blob import BlobServiceClient
+import boto3
 import os
 from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings
@@ -33,43 +33,54 @@ def load_file(file_name):
 
 def file_to_chunks():
     pages=[]
-    with st.spinner("Azure blob storage contents are processing into chunks....."):
-            for file_name in os.listdir("Azure_data"):
-             pages.extend(load_file(f"Azure_data\\{file_name}"))
-    shutil.rmtree("Azure_data")
+    with st.spinner("AWS S3 contents are processing into chunks....."):
+        for file_name in os.listdir("S3_data"):
+            pages.extend(load_file(f"S3_data\\{file_name}"))
+    shutil.rmtree("S3_data")
     return pages
     
-def azure_data_download(AZURE_CONNECTION_STRING,CONTAINER_NAME):
-    blob_service_client = BlobServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
-    container_client = blob_service_client.get_container_client(CONTAINER_NAME)
-    if not os.path.exists("Azure_data"):
-        os.mkdir("Azure_data")
-    for file_name in container_client.list_blobs():
-        blob_client = container_client.get_blob_client(file_name)
-        with open(f"Azure_data\\{file_name.name}", "wb") as file:
-            data = blob_client.download_blob().readall()
-            file.write(data)
+def aws(AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, BUCKET_NAME,object_name):
+        # Create an S3 client
+    s3 = boto3.client('s3',
+                    aws_access_key_id=AWS_ACCESS_KEY_ID,
+                    aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
 
-st.title("Azure Blob Storage Data to Chroma Vector Database")
+    # List objects in the bucket
+    response = s3.list_objects_v2(Bucket=BUCKET_NAME)
 
-st.title("Azure Blob Storage Credentials")
+    if not os.path.exists("S3_data"):
+        os.mkdir("S3_data")
+
+    # Download files in the 'data' object
+    for i in response.get('Contents',[]):
+        if i['Key'].split('/')[-1] != "" and i['Key'].split('/')[0] == object_name:
+            # print(i['Key'])
+            file_path = os.path.join("S3_data", i['Key'].split('/')[-1])
+            # print(file_path)
+            s3.download_file(BUCKET_NAME, i['Key'], file_path)
+
+st.title("AWS S3 Data to Chroma Vector Database")
+
+st.title("AWS S3 Credentials")
 
 # Input fields in sidebar
-AZURE_CONNECTION_STRING = st.text_input("Azure Connection String Input",type="password")
-CONTAINER_NAME = st.text_input("Azure Container Name")
+aws_access_key = st.text_input("AWS Access Key",type="password")
+aws_secret_access_key = st.text_input("AWS SECRET ACCESS KEY",type="password")
+bucket_name= st.text_input("AWS BUCKET NAME")
+object_name= st.text_input("AWS OBJECT NAME")
 
 if st.button("Injest"):
     # Check if all inputs are provided
-    if AZURE_CONNECTION_STRING and CONTAINER_NAME:
+    if aws_access_key and aws_secret_access_key and bucket_name and object_name:
         # Download PDF from Azure Blob Storage
         try:
-            with st.spinner("Azure connection is creating....."):
-                azure_data_download(AZURE_CONNECTION_STRING=AZURE_CONNECTION_STRING, CONTAINER_NAME=CONTAINER_NAME)
+            with st.spinner("AWS connection is creating....."):
+                aws(AWS_ACCESS_KEY_ID=aws_access_key, AWS_SECRET_ACCESS_KEY=aws_secret_access_key, BUCKET_NAME=bucket_name, object_name=object_name)
             pages = file_to_chunks()
             with st.spinner("Chroma VectorDatabse is creating....."):
                 db = Chroma.from_documents(pages, OpenAIEmbeddings(), persist_directory="Chroma_db")
             st.success("Chroma VectorDatabse is created successfully")
         except Exception as e:
-            st.error(f"Error connecting with Azure: {str(e)}")
+            st.error(f"Error in connecting with AWS: {str(e)}")
     else:
-        st.warning("Please provide Azure Storage Account Name and Container Name.")
+        st.warning("Please provide AWS CREDENTIALS.")
