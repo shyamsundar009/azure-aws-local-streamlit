@@ -50,15 +50,15 @@ def azure_data_download(AZURE_CONNECTION_STRING,CONTAINER_NAME):
             data = blob_client.download_blob().readall()
             file.write(data)
 
-st.sidebar.title("Azure Blob Storage Credentials")
-
-# Input fields in sidebar
-AZURE_CONNECTION_STRING = st.sidebar.text_input("Azure Connection String Input",type="password")
-CONTAINER_NAME = st.sidebar.text_input("Azure Container Name")
-
 st.title("Azure Blob Storage Data to Chroma Vector Database")
 
-if st.sidebar.button("Injest"):
+st.title("Azure Blob Storage Credentials")
+
+# Input fields in sidebar
+AZURE_CONNECTION_STRING = st.text_input("Azure Connection String Input",type="password")
+CONTAINER_NAME = st.text_input("Azure Container Name")
+
+if st.button("Injest"):
     # Check if all inputs are provided
     if AZURE_CONNECTION_STRING and CONTAINER_NAME:
         # Download PDF from Azure Blob Storage
